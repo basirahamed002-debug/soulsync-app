@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { overflow-x: hidden; }
+
+@layer components {
+  .glass {
+    @apply bg-white/[0.06] border border-white/10 backdrop-blur-xl rounded-card;
+  }
+  .btn-primary {
+    @apply flex items-center justify-center gap-2 font-bold text-[15px] px-5 py-4 rounded-2xl text-white
+      bg-gradient-to-br from-primary to-accent shadow-[0_8px_24px_-8px_rgba(255,77,141,0.55)]
+      active:scale-95 transition-transform;
+  }
+  .btn-ghost {
+    @apply flex items-center justify-center gap-2 font-bold text-[15px] px-5 py-4 rounded-2xl text-white
+      glass active:scale-95 transition-transform;
+  }
+  .input-field {
+    @apply w-full bg-white/5 border border-white/10 text-white rounded-2xl px-4 py-3.5 text-[15px]
+      outline-none focus:border-primary transition-colors placeholder:text-white/30;
+  }
+}
+
+::-webkit-scrollbar { display: none; }
