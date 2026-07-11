@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import type { Profile } from '@/types'
 
 function daysSince(dateStr: string | null) {
   if (!dateStr) return null
@@ -25,20 +23,8 @@ const STAGE_LABELS: Record<string, string> = {
 }
 
 export default function Home() {
-  const { user, profile, couple, signOut } = useAuth()
-  const [partner, setPartner] = useState<Profile | null>(null)
+  const { user, profile, couple, partner, signOut } = useAuth()
   const [showConfirm, setShowConfirm] = useState(false)
-
-  useEffect(() => {
-    async function loadPartner() {
-      if (!couple || !user) return
-      const partnerId = couple.player_a === user.id ? couple.player_b : couple.player_a
-      if (!partnerId) return
-      const { data } = await supabase.from('profiles').select('*').eq('id', partnerId).maybeSingle()
-      setPartner(data as Profile | null)
-    }
-    loadPartner()
-  }, [couple, user])
 
   const together = daysSince(profile?.anniversary_date ?? null)
 
