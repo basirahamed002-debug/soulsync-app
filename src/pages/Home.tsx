@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { Profile } from '@/types'
@@ -25,8 +25,9 @@ const STAGE_LABELS: Record<string, string> = {
 }
 
 export default function Home() {
-  const { user, profile, couple } = useAuth()
+  const { user, profile, couple, signOut } = useAuth()
   const [partner, setPartner] = useState<Profile | null>(null)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   useEffect(() => {
     async function loadPartner() {
@@ -99,6 +100,29 @@ export default function Home() {
           </p>
         </div>
       )}
+
+      <div className="mt-8 flex justify-center">
+        {!showConfirm ? (
+          <button
+            className="text-white/40 text-[13px] font-semibold underline underline-offset-2"
+            onClick={() => setShowConfirm(true)}
+          >
+            Log out
+          </button>
+        ) : (
+          <div className="glass p-4 text-center w-full">
+            <p className="text-white/70 text-[13px] mb-3">Log out of SoulSync?</p>
+            <div className="flex gap-3">
+              <button className="btn-ghost flex-1 py-2.5 text-[13px]" onClick={() => setShowConfirm(false)}>
+                Cancel
+              </button>
+              <button className="btn-primary flex-1 py-2.5 text-[13px]" onClick={signOut}>
+                Log out
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
