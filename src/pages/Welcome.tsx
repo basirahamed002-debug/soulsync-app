@@ -1,8 +1,22 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function Welcome() {
   const navigate = useNavigate()
+  const { user, profile, couple, loading } = useAuth()
+
+  useEffect(() => {
+    if (loading || !user) return
+    if (!profile || !profile.nickname) {
+      navigate('/setup-profile')
+    } else if (!couple) {
+      navigate('/pairing')
+    } else {
+      navigate('/home')
+    }
+  }, [user, profile, couple, loading])
 
   async function signInWithGoogle() {
     await supabase.auth.signInWithOAuth({
