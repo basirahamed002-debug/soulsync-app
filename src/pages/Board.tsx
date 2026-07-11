@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import CardModal from '@/components/CardModal'
+import ChatOverlay from '@/components/ChatOverlay'
 import type { Card, CoupleProgress } from '@/types'
 
 const CATEGORY_CLASSES: Record<string, string> = {
@@ -102,6 +103,7 @@ export default function Board() {
       )}
 
       {activeCard && <CardModal card={activeCard} onClose={() => setActiveCard(null)} />}
+      <ChatOverlay />
     </div>
   )
 }
