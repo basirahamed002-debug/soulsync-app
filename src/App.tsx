@@ -7,6 +7,7 @@ import ProfileSetup from '@/pages/ProfileSetup'
 import Pairing from '@/pages/Pairing'
 import Home from '@/pages/Home'
 import Board from '@/pages/Board'
+import Chat from '@/pages/Chat'
 import Journey from '@/pages/Journey'
 import Memory from '@/pages/Memory'
 
@@ -47,6 +48,14 @@ export default function App() {
               element={
                 <RequireAuth requireCouple>
                   <Board />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/chat"
+              element={
+                <RequireAuth requireCouple>
+                  <Chat />
                 </RequireAuth>
               }
             />
