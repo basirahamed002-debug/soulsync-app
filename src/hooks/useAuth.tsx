@@ -8,6 +8,7 @@ interface AuthContextValue {
   session: Session | null
   profile: Profile | null
   couple: Couple | null
+  partner: Profile | null
   loading: boolean
   refreshProfile: () => Promise<void>
   refreshCouple: () => Promise<void>
@@ -21,45 +22,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [couple, setCouple] = useState<Couple | null>(null)
+  const [partner, setPartner] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  async function loadProfile(uid: string) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle()
-    setProfile(data as Profile | null)
-  }
-
-  async function loadCouple(uid: string) {
-    const { data } = await supabase
-      .from('couples')
-      .select('*')
-      .or(`player_a.eq.${uid},player_b.eq.${uid}`)
-      .eq('status', 'paired')
-      .maybeSingle()
-    setCouple(data as Couple | null)
+  // One combined request instead of separate profile / couple / partner calls.
+  async function loadBootstrap() {
+    const { data, error } = await supabase.rpc('get_app_bootstrap')
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error('bootstrap load failed', error)
+      return
+    }
+    setProfile((data?.profile as Profile | null) ?? null)
+    setCouple((data?.couple as Couple | null) ?? null)
+    setPartner((data?.partner as Profile | null) ?? null)
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session)
       setUser(data.session?.user ?? null)
       if (data.session?.user) {
-        Promise.all([loadProfile(data.session.user.id), loadCouple(data.session.user.id)]).finally(() =>
-          setLoading(false)
-        )
-      } else {
-        setLoading(false)
+        await loadBootstrap()
       }
+      setLoading(false)
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession)
       setUser(newSession?.user ?? null)
       if (newSession?.user) {
-        loadProfile(newSession.user.id)
-        loadCouple(newSession.user.id)
+        await loadBootstrap()
       } else {
         setProfile(null)
         setCouple(null)
+        setPartner(null)
       }
     })
 
@@ -67,17 +64,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function refreshProfile() {
-    if (user) await loadProfile(user.id)
+    if (user) await loadBootstrap()
   }
   async function refreshCouple() {
-    if (user) await loadCouple(user.id)
+    if (user) await loadBootstrap()
   }
   async function signOut() {
     await supabase.auth.signOut()
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, couple, loading, refreshProfile, refreshCouple, signOut }}>
+    <AuthContext.Provider
+      value={{ user, session, profile, couple, partner, loading, refreshProfile, refreshCouple, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   )
