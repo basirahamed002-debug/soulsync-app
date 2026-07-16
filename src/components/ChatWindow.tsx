@@ -8,6 +8,7 @@ interface Message {
   sender_id: string
   content: string
   created_at: string
+  read_at: string | null
 }
 
 export default function ChatWindow({ compact = false }: { compact?: boolean }) {
@@ -28,11 +29,12 @@ export default function ChatWindow({ compact = false }: { compact?: boolean }) {
         .limit(200)
       setMessages((data as Message[]) ?? [])
       setLoading(false)
+      await supabase.rpc('mark_messages_read', { p_couple_id: couple.id })
     }
     loadMessages()
   }, [couple])
 
-  // Listen for new messages in real time.
+  // Listen for new messages, and for read-receipt updates, in real time.
   useEffect(() => {
     if (!couple) return
     const channel = supabase
@@ -40,15 +42,27 @@ export default function ChatWindow({ compact = false }: { compact?: boolean }) {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `couple_id=eq.${couple.id}` },
+        async (payload) => {
+          const incoming = payload.new as Message
+          setMessages((prev) => [...prev, incoming])
+          if (incoming.sender_id !== user?.id) {
+            await supabase.rpc('mark_messages_read', { p_couple_id: couple.id })
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `couple_id=eq.${couple.id}` },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message])
+          const updated = payload.new as Message
+          setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
         }
       )
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [couple])
+  }, [couple, user])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -79,10 +93,11 @@ export default function ChatWindow({ compact = false }: { compact?: boolean }) {
             No messages yet — say hi to {partner?.nickname ?? 'your partner'} 👋
           </p>
         ) : (
-          messages.map((m) => {
+          messages.map((m, i) => {
             const mine = m.sender_id === user?.id
+            const isLastMine = mine && !messages.slice(i + 1).some((later) => later.sender_id === user?.id)
             return (
-              <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+              <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
                 <div
                   className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-[13.5px] ${
                     mine
@@ -92,6 +107,11 @@ export default function ChatWindow({ compact = false }: { compact?: boolean }) {
                 >
                   {m.content}
                 </div>
+                {isLastMine && (
+                  <span className="text-white/40 text-[10.5px] mt-1 mr-1">
+                    {m.read_at ? 'Seen' : 'Delivered'}
+                  </span>
+                )}
               </div>
             )
           })
